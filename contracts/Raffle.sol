@@ -3,11 +3,22 @@ pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
+import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+
 
 error Raffle__NotEnoughEthEntered();
 error Raffle_TransferFailed();
+error Raffle__NotOpen();
+error Raffle_UpkeepNotNeeded(uint256 currentBalance, uint256 length, )
 
-contract Raffle is VRFConsumerBaseV2 {
+contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
+
+    /* Type Declaration */
+    enum RaffleState{
+        OPEN, 
+        CALCULATING
+    }
+
     /* State variables */
     uint256 private immutable i_enteranceFee;
     address payable[] private s_players;
@@ -18,34 +29,63 @@ contract Raffle is VRFConsumerBaseV2 {
     uint32 private immutable i_callbackGasLimit;
     uint32 private constant NUM_WORDS = 1;
 
+
     //Lottery Variables
     address private recentWinner;
+    RaffleState private s_raffleState;
+    uint256 private s_lastTimeStamp;
+    uint256 private immutable i_interval;
 
     /* Events */
     event RaffleEvent(address indexed player);
     event RequestRaffleWinner(uint256 indexed requestId);
     event WinnerPicked(address indexed winner);
 
-    constructor(address vrfCoordinatorV2, uint256 entranceFee, bytes32 gaslane, uint64 subscriptionId, uint32 callbackGasLimit) 
-        VRFConsumerBaseV2(vrfCoordinatorV2)
+    constructor(address vrfCoordinatorV2, uint256 entranceFee, bytes32 gaslane, uint64 subscriptionId, uint32 callbackGasLimit, uint256 interval) 
+        VRFConsumerBaseV2(vrfCoordinatorV2), 
     {
         i_enteranceFee = entranceFee;
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
         i_gasLane = gaslane;
         i_subscriptionId = subscriptionId;
         i_callbackGasLimit = callbackGasLimit;
+        s_raffleState = RaffleState.OPEN;
+        i_interval = interval;
+        s_lastTimeStamp = block.timestamp;
     }
 
     function enterRaffle() public payable {
         if (msg.value < i_enteranceFee) {
             revert Raffle__NotEnoughEthEntered();
         }
+        if(s_raffleState != RaffleState.OPEN){
+            revert Raffle__NotOpen();
+        }
         s_players.push(payable(msg.sender));
 
         emit RaffleEvent(msg.sender);
     }
 
-    function requestRandomWinner() external {
+    function checkUpkeep(bytes calldata/*checkData*/) public override returns (bool upkeepNeeded, bytes memory /* performData */){
+        bool isOpen = (RaffleState.OPEN == s_raffleState);
+        bool timepassed = ((block.timestamp- s_lastTimeStamp)>i_inerval);
+        bool hasPlayer = (s_players.length > 0);
+        bool hasBalance = address(this).balance >0;
+        upkeepNeeded = (isOpen ** timepassed && hasBalance && hasPlayer);
+    }
+
+    function performUpkeep(bytes calldata /* performData */) external override {
+        (bool upkeepNeeded) = checkUpkeep("");
+
+        if(!upkeepNeeded){
+            revert Raffle_UpkeepNotNeeded(
+                address(this).balance,
+                s_player.length,
+                uint256(s_raffleState)
+            );
+        }
+
+        s_raffleState = RaffleState.CALCULATING;
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
             i_gasLane,
             i_subscriptionId,
@@ -60,6 +100,9 @@ contract Raffle is VRFConsumerBaseV2 {
         uint256 indexOfWinner = randomWords[0] % s_players.length;
         address payable r_recentWinner = s_players[indexOfWinner];
         recentWinner = r_recentWinner;
+        s_raffleState = RaffleState.OPEN;
+        s_players = new address payable[](0);
+        s_lastTimeStamp = block.timestamp;
         (bool success, ) = r_recentWinner.call{value: address(this).balance}("");
         if(!success){
             revert Raffle_TransferFailed();
