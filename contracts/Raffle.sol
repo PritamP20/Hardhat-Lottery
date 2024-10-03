@@ -1,57 +1,46 @@
-// Raffle
-
-// Enter the lottery (paying some amount)
-// Pick a random winner (verifiable random)
-// Winner to be selected every X minutes -> completly automate
-// chainlink oracle -> Randomness, Automated Execution (Chainlink keeper)
-
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.7;
 
-import "@chinlink/contracts/src/v0.8/VRFConsumerBaseV2.sol"
+import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
 
 error Raffle__NotEnoughEthEntered();
 
-contract Raffle {
+contract Raffle is VRFConsumerBaseV2 {
     /* State variables */
-    uint256 private immutable i_enteraceFee;
+    uint256 private immutable i_enteranceFee;
     address payable[] private s_players;
 
-    constructor(uint256 entraceFee) {
-        i_enteraceFee = entraceFee;
+    /* Events */
+    event RaffleEvent(address indexed payer);
+
+    constructor(address vrfCoordinator, uint256 entranceFee) 
+        VRFConsumerBaseV2(vrfCoordinator)
+    {
+        i_enteranceFee = entranceFee;
     }
 
-    /* Events */
-    event RaffleEvent(address indexed payer );
-
-    uint256 private s_entranceFee
-
-    function enterRaffle() public payable returns () {
-        if(msg.value < i_enteraceFee){
+    function enterRaffle() public payable {
+        if (msg.value < i_enteranceFee) {
             revert Raffle__NotEnoughEthEntered();
         }
-        // s_players.push(msg.sender) this wont work bcz msg.sender is not a payable address
         s_players.push(payable(msg.sender));
 
-        //Emit an event when we update a dynamic arrat or mapping
-        emit RaffleEvent(msg.sender)
+        emit RaffleEvent(msg.sender);
+    }
+
+    function requestRandomWinner() external {
         
     }
 
-    function requestRandomWinner() external returns () {
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
         
     }
 
-    function fullfillRandomWords() internal override returns () {
-        
+    function getEntranceFee() public view returns (uint256) {
+        return i_enteranceFee;
     }
 
-    function getEntranceFee() public view returns () {
-        return i_enteraceFee;
-    }
-
-    function getPlayer(uint256 index) public view returns () {
-        return s_players[index]
+    function getPlayer(uint256 index) public view returns (address) {
+        return s_players[index];
     }
 }
