@@ -9,7 +9,7 @@ import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/autom
 error Raffle__NotEnoughEthEntered();
 error Raffle_TransferFailed();
 error Raffle__NotOpen();
-error Raffle_UpkeepNotNeeded(uint256 currentBalance, uint256 length, )
+error Raffle__UpkeepNotNeeded(uint256 currentBalance, uint256 numPlayers, uint256 raffleState);
 
 contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
 
@@ -42,7 +42,7 @@ contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
     event WinnerPicked(address indexed winner);
 
     constructor(address vrfCoordinatorV2, uint256 entranceFee, bytes32 gaslane, uint64 subscriptionId, uint32 callbackGasLimit, uint256 interval) 
-        VRFConsumerBaseV2(vrfCoordinatorV2), 
+        VRFConsumerBaseV2(vrfCoordinatorV2)
     {
         i_enteranceFee = entranceFee;
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
@@ -66,33 +66,26 @@ contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
         emit RaffleEvent(msg.sender);
     }
 
-    function checkUpkeep(bytes calldata/*checkData*/) public override returns (bool upkeepNeeded, bytes memory /* performData */){
+    function checkUpkeep(bytes memory /*checkData*/) public view override returns (bool upkeepNeeded, bytes memory /* performData */){
         bool isOpen = (RaffleState.OPEN == s_raffleState);
-        bool timepassed = ((block.timestamp- s_lastTimeStamp)>i_inerval);
+        bool timepassed = ((block.timestamp- s_lastTimeStamp)>i_interval);
         bool hasPlayer = (s_players.length > 0);
         bool hasBalance = address(this).balance >0;
-        upkeepNeeded = (isOpen ** timepassed && hasBalance && hasPlayer);
+        upkeepNeeded = (isOpen && timepassed && hasBalance && hasPlayer);
+        return (upkeepNeeded, "0x0");
     }
 
     function performUpkeep(bytes calldata /* performData */) external override {
-        (bool upkeepNeeded) = checkUpkeep("");
-
-        if(!upkeepNeeded){
-            revert Raffle_UpkeepNotNeeded(
-                address(this).balance,
-                s_player.length,
-                uint256(s_raffleState)
-            );
+        (bool upkeepNeeded,) = checkUpkeep("");
+        // require(upkeepNeeded, "Upkeep not needed");
+        if (!upkeepNeeded) {
+            revert Raffle__UpkeepNotNeeded(address(this).balance, s_players.length, uint256(s_raffleState));
         }
-
         s_raffleState = RaffleState.CALCULATING;
         uint256 requestId = i_vrfCoordinator.requestRandomWords(
-            i_gasLane,
-            i_subscriptionId,
-            REQUEST_CONFERMATIONS,
-            i_callbackGasLimit,
-            NUM_WORDS
+            i_gasLane, i_subscriptionId, REQUEST_CONFERMATIONS, i_callbackGasLimit, NUM_WORDS
         );
+        // Quiz... is this redundant?
         emit RequestRaffleWinner(requestId);
     }
 
@@ -117,5 +110,33 @@ contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
 
     function getPlayer(uint256 index) public view returns (address) {
         return s_players[index];
+    }
+
+    function getRaffleState() public view returns (RaffleState) {
+        return s_raffleState;
+    }
+
+    function getNumWords() public pure returns (uint256) {
+        return NUM_WORDS;
+    }
+
+    function getRequestConfimations() public pure returns (uint256) {
+        return REQUEST_CONFERMATIONS;
+    }
+
+    function getRecentWinner() public view returns (address) {
+        return recentWinner;
+    }
+
+    function getLastTimeStamp() public view returns (uint256) {
+        return s_lastTimeStamp;
+    }
+
+    function getInterval() public view returns (uint256) {
+        return i_interval;
+    }
+
+    function getNumberOfPlayeres() public view returns (uint256) {
+        return s_players.length;
     }
 }
