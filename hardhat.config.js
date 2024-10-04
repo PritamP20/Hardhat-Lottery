@@ -1,34 +1,39 @@
 /** @type import('hardhat/config').HardhatUserConfig */
 
-require("@nomiclabs/hardhat-waffle")
-require("@nomiclabs/hardhat-etherscan")
-require("hardhat-deploy")
-require("solidity-coverage")
-require("hardhat-gas-reporter")
-require("hardhat-contract-sizer")
-require("dotenv").config()
+require("@nomiclabs/hardhat-waffle");
+require("@nomiclabs/hardhat-etherscan");
+require("hardhat-deploy");
+require("solidity-coverage");
+require("hardhat-gas-reporter");
+require("hardhat-contract-sizer");
+require("dotenv").config();
+
+const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "";
+const PRIVATE_KEY = process.env.PRIVATE_KEY || "0x0"; // Fallback key, but avoid using this default
 
 module.exports = {
   defaultNetwork: "hardhat",
-  networks:{
-    hardhat:{
+  networks: {
+    hardhat: {
       chainId: 31337,
-      blockConfirmations: 1
+      blockConfirmations: 1,
     },
     sepolia: {
       chainId: 11155111,
-      url: "https://eth-sepolia.g.alchemy.com/v2/dDJJ1Lvt2Xyuac8UgD3xAcQekhHqtI-P",
-      accounts: ["8b87d9854e35388b8f6d9ffba30c5316958e89fdae04326d914f411b463d4b08"],
-      blockConfirmations: 6
-    }
+      url: SEPOLIA_RPC_URL,
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+      blockConfirmations: 6,
+    },
   },
   solidity: "0.8.27",
-  namedAccounts:{
-    deployer:{
-      default: 0
+
+  //This is the part you need to verify
+    namedAccounts: {
+        deployer: {
+            default: 0,
+        },
+        player: {
+            default: 1,
+        },
     },
-    player:{
-      default: 1,
-    },
-  }
 };
