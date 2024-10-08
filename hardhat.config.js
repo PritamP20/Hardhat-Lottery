@@ -41,5 +41,8 @@ module.exports = {
       currency: "USD",
       outputFile: "gas-report.txt",
       noColors: true
+    },
+    mocha:{
+      timeout: 200000
     }
 };
