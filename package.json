@@ -7,7 +7,7 @@
     "dotenv": "^16.4.5",
     "ethereum-waffle": "^4.0.10",
     "ethers": "^5.7.2",
-    "hardhat": "^2.22.12",
+    "hardhat": "^2.22.13",
     "hardhat-contract-sizer": "^2.10.0",
     "hardhat-deploy": "^0.12.4",
     "hardhat-gas-reporter": "^2.2.1",

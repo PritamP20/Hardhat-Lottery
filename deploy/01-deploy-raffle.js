@@ -49,8 +49,8 @@ console.log("Arguments for Raffle:", args);
         waitConfirmations: network.config.blockConfirmations || 1,
     });
 
-    await vrfCoordinatorV2Mock.addConsumer(subscriptionId, raffle.address);
-    log('Consumer is added');
+    // await vrfCoordinatorV2Mock.addConsumer(subscriptionId, raffle.address);
+    // log('Consumer is added');
 
     if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
         log("Verifying....");
