@@ -25,7 +25,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
 
        
     } else {
-        vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"];
+        vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinator"];
         subscriptionId = networkConfig[chainId]["subscriptionId"];
     }
 
