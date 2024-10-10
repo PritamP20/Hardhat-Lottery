@@ -46,7 +46,7 @@ const { getNamedAccounts, deployments, network, ethers } = require("hardhat");
         describe("enterRaffle", async function (){
             it("reverst when you don't pay enough", async function(){
                 await expect(raffle.enterRaffle()).to.be.revertedWith(
-                    "Raffle__NotEnoughEthEntered"
+                    "Raffle__notEnoughEthEntered"
                 )
             })
             it("revords players when they enter", async function(){
